@@ -8,19 +8,23 @@ require 'yaml'
 
 
 def set_environment(environment)
-	YAML::load_file(File.join(File.dirname(File.expand_path(__FILE__)), 'config.yml'))[environment]
+	environments[environment]
+end
+
+def environments
+	YAML::load_file(File.join(File.dirname(File.expand_path(__FILE__)), 'config.yml'))
 end
 
 opts = Trollop::options do
 	opt :environment, "", :type => :string
 end	
-Trollop::die :environment, "needs an environment" unless opts[:environment]
+Trollop::die :environment, "needs an environment. Valid values(#{environments.keys.join(',')})" unless environments.keys.include? opts[:environment]
 
 
 settings = set_environment(opts[:environment])
 
 cfm = Fog::AWS::CloudFormation.new(settings)
-stacks = cfm.list_stacks.body
-stacks["StackSummaries"].each {|stack| puts stack['StackName'] if stack["StackStatus"] !='DELETE_COMPLETE'
-
-}
+stacks = cfm.list_stacks.body["StackSummaries"]
+stacks.each do |stack| 
+	puts stack['StackName'] if stack["StackStatus"] !='DELETE_COMPLETE'
+end
