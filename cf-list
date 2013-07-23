@@ -1,0 +1,26 @@
+#! /usr/bin/env ruby
+require "rubygems"
+require "bundler/setup"
+require "fog"
+require "fileutils"
+require 'trollop'
+require 'yaml'
+
+
+def set_environment(environment)
+	YAML::load_file(File.join(File.dirname(File.expand_path(__FILE__)), 'config.yml'))[environment]
+end
+
+opts = Trollop::options do
+	opt :environment, "", :type => :string
+end	
+Trollop::die :environment, "needs an environment" unless opts[:environment]
+
+
+settings = set_environment(opts[:environment])
+
+cfm = Fog::AWS::CloudFormation.new(settings)
+stacks = cfm.list_stacks.body
+stacks["StackSummaries"].each {|stack| puts stack['StackName'] if stack["StackStatus"] !='DELETE_COMPLETE'
+
+}
