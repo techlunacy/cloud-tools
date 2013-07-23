@@ -1,26 +1,39 @@
 #! /usr/bin/env ruby
 require "rubygems"
 require "bundler/setup"
-require "aws-sdk"
+require "fog"
 require "fileutils"
 require 'trollop'
+require 'yaml'
 
-  opts = Trollop::options do
-    opt :file, "", :type => :string 
-    opt :stack, "", :type => :string
-  end
+
+def set_environment(environment)
+	YAML::load_file(File.join(File.dirname(File.expand_path(__FILE__)), 'config.yml'))[environment]
+end
+
+opts = Trollop::options do
+	opt :file, "", :type => :string 
+	opt :stack, "", :type => :string
+	opt :environment, "", :type => :string
+end	
 Trollop::die :file, "represent a file to write to" unless opts[:file]
 Trollop::die :stack, "represent a stack on aws" unless opts[:stack]
+Trollop::die :environment, "needs an environment" unless opts[:stack]
 
-puts opts
-cfm = AWS::CloudFormation.new
-stack = cfm.stacks[opts[:stack]]
+
+settings = set_environment(opts[:environment])
+
+cfm = Fog::AWS::CloudFormation.new(settings)
+stack = cfm.get_template opts[:stack]
 filename = opts[:file]
+
+
 
  if File.exists?(filename)
  	old_filename = "#{filename}.#{Time.now.to_i.to_s}"
 	FileUtils.mv(filename, old_filename)
 	puts "old cloudformation: #{old_filename}"
 end
-File.open(filename, mode= "w+"){|file| file.write(stack.template) }
+
+File.open(filename, mode= "w+"){|file| file.write(stack.body["TemplateBody"]) }
 puts filename
