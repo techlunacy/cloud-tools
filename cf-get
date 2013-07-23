@@ -11,6 +11,10 @@ def set_environment(environment)
 	YAML::load_file(File.join(File.dirname(File.expand_path(__FILE__)), 'config.yml'))[environment]
 end
 
+def environments
+	YAML::load_file(File.join(File.dirname(File.expand_path(__FILE__)), 'config.yml')).keys
+end
+
 opts = Trollop::options do
 	opt :file, "", :type => :string 
 	opt :stack, "", :type => :string
@@ -18,7 +22,7 @@ opts = Trollop::options do
 end	
 Trollop::die :file, "represent a file to write to" unless opts[:file]
 Trollop::die :stack, "represent a stack on aws" unless opts[:stack]
-Trollop::die :environment, "needs an environment" unless opts[:stack]
+Trollop::die :environment, "needs an environment. Valid values(#{environments.join(',')})" unless environments.include? opts[:environment]
 
 
 settings = set_environment(opts[:environment])
