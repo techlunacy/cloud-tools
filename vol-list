@@ -20,13 +20,13 @@ opts = Trollop::options do
 	opt :value, "", :type => :string
 	opt :key, "", :type => :string
 	opt :backup, ""
+	opt :delete, ""
 end	
 Trollop::die :environment, "needs an environment. Valid values(#{environments.keys.join(',')})" unless environments.keys.include? opts[:environment]
- puts opts[:backup]
+
 
 settings = set_environment(opts[:environment]).merge(:provider => 'AWS')
 cfm = Fog::Compute.new(settings)
-filters = {opts[:key] => opts[:value]}
 volumes = cfm.volumes.all
 
 
@@ -36,3 +36,19 @@ volumes.select!{|vol|vol.tags[opts[:key]] == opts[:value]}	unless opts[:key].to_
 volumes.each do |volume| 
 	puts volume.id
 end
+
+if opts[:backup]
+	volumes.each do |volume| 
+		response = cfm.create_snapshot(volume.id)
+     	snapshot = cfm.snapshots.get(response.body['snapshotId'])
+     	cfm.tags.create(:resource_id => snapshot.id, :key => "Name", :value => "#{volume.id} #{DateTime.now.to_date}")
+     	cfm.tags.create(:resource_id => snapshot.id, :key => "Date", :value => DateTime.now.to_date)
+     	cfm.tags.create(:resource_id => snapshot.id, :key => "Volume", :value => volume.id)
+	end	
+end
+
+
+
+
+
+
