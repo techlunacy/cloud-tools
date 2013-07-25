@@ -23,8 +23,8 @@ Trollop::die :environment, "needs an environment. Valid values(#{environments.ke
 
 settings = set_environment(opts[:environment])
 
-cfm = Fog::AWS::CloudFormation.new(settings)
-stacks = cfm.list_stacks.body["StackSummaries"]
+@connection = Fog::AWS::CloudFormation.new(settings)
+stacks = @connection.list_stacks.body["StackSummaries"]
 stacks.each do |stack| 
 	puts stack['StackName'] if stack["StackStatus"] !='DELETE_COMPLETE'
 end

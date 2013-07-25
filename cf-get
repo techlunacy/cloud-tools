@@ -27,8 +27,8 @@ Trollop::die :environment, "needs an environment. Valid values(#{environments.ke
 
 settings = set_environment(opts[:environment])
 
-cfm = Fog::AWS::CloudFormation.new(settings)
-stack = cfm.get_template opts[:stack]
+@connection = Fog::AWS::CloudFormation.new(settings)
+stack = @connection.get_template opts[:stack]
 filename = opts[:file]
 
 
