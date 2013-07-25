@@ -5,6 +5,7 @@ require "fog"
 require "fileutils"
 require 'trollop'
 require 'yaml'
+require 'date'
 
 
 def set_environment(environment)
@@ -15,38 +16,57 @@ def environments
 	YAML::load_file(File.join(File.dirname(File.expand_path(__FILE__)), 'config.yml'))
 end
 
+def create_snapshot(volume)
+	response = @connection.create_snapshot(volume.id)
+	snapshot_id = response.body['snapshotId']
+ 	@connection.tags.create(:resource_id => snapshot_id, :key => "Name", :value => "#{volume.id} #{DateTime.now.to_date}")
+ 	@connection.tags.create(:resource_id => snapshot_id, :key => "Date", :value => DateTime.now.to_date)
+ 	@connection.tags.create(:resource_id => snapshot_id, :key => "Volume", :value => volume.id)
+end
+
+
+def delete_snapshot(volume, age)
+	now = Time.new
+	oldest = now - (age * 60 * 60 * 24)
+	puts oldest
+	snapshots = @connection.snapshots.all
+	snapshots.select!{|snap| snap.tags["Volume"] == volume.id && snap.created_at <= oldest}
+	 snapshots.each { |snap| 
+		puts snap.id
+		snap.destroy
+	 }
+end
+
+def has_value?(value)
+	!value.to_s.empty?
+end
+
 opts = Trollop::options do
 	opt :environment, "", :type => :string
 	opt :value, "", :type => :string
 	opt :key, "", :type => :string
 	opt :backup, ""
 	opt :delete, ""
+	opt :age, "in days", :type => :integer, :default => 0
 end	
 Trollop::die :environment, "needs an environment. Valid values(#{environments.keys.join(',')})" unless environments.keys.include? opts[:environment]
 
 
 settings = set_environment(opts[:environment]).merge(:provider => 'AWS')
-cfm = Fog::Compute.new(settings)
-volumes = cfm.volumes.all
+@connection = Fog::Compute.new(settings)
+volumes = @connection.volumes.all
 
 
 
-volumes.select!{|vol|vol.tags[opts[:key]] == opts[:value]}	unless opts[:key].to_s.empty?
+volumes.select!{|vol|vol.tags[opts[:key]] == opts[:value]}	if has_value? opts[:key]
 
 volumes.each do |volume| 
 	puts volume.id
+	create_snapshot(volume) if opts[:backup]
+	if opts[:delete] && has_value?(opts[:key]) && opts[:age] > 0
+		delete_snapshot(volume, opts[:age]) 
+	end
 end
-
-if opts[:backup]
-	volumes.each do |volume| 
-		response = cfm.create_snapshot(volume.id)
-     	snapshot = cfm.snapshots.get(response.body['snapshotId'])
-     	cfm.tags.create(:resource_id => snapshot.id, :key => "Name", :value => "#{volume.id} #{DateTime.now.to_date}")
-     	cfm.tags.create(:resource_id => snapshot.id, :key => "Date", :value => DateTime.now.to_date)
-     	cfm.tags.create(:resource_id => snapshot.id, :key => "Volume", :value => volume.id)
-	end	
-end
-
 
 
 
