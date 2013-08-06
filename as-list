@@ -1,0 +1,29 @@
+#! /usr/bin/env ruby
+require "rubygems"
+require "bundler/setup"
+require "fog"
+require "fileutils"
+require 'trollop'
+require 'yaml'
+
+
+def set_environment(environment)
+	environments[environment]
+end
+
+def environments
+	YAML::load_file(File.join(File.dirname(File.expand_path(__FILE__)), 'config.yml'))
+end
+
+opts = Trollop::options do
+	opt :environment, "", :type => :string
+end	
+Trollop::die :environment, "needs an environment. Valid values(#{environments.keys.join(',')})" unless environments.keys.include? opts[:environment]
+
+
+settings = set_environment(opts[:environment])
+
+@connection = Fog::AWS::AutoScaling.new(settings)
+@connection.groups.each do |group| 
+	puts group.id
+end
