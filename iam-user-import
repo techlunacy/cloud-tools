@@ -1,0 +1,58 @@
+#! /usr/bin/env ruby
+require "rubygems"
+require "bundler/setup"
+require "fog"
+require "fileutils"
+require 'trollop'
+require 'yaml'
+require 'csv'
+
+def set_environment(environment)
+	environments[environment]
+end
+
+def environments
+	YAML::load_file(File.join(File.dirname(File.expand_path(__FILE__)), 'config.yml'))
+end
+
+def send_email(email, connection, variables)
+	message= {'Subject' =>{}, 'Body' =>{'Text'=>{},'Html'=>{}}}
+	message['Subject']['Data'] = email
+	message['Body']['Text']['Data'] = email
+	message['Body']['Html']['Data'] = email
+	puts message
+	connection.send_email("graeme.wilson@whitelabelled.com.au",{'ToAddresses' => ["graeme.wilson@whitelabelled.com.au"]},  message)
+end
+
+opts = Trollop::options do
+	opt :environment, "", :type => :string
+	opt :file, "user file", :type => :string
+	opt :groups, "user groups", :type => :strings
+end	
+Trollop::die :environment, "needs an environment. Valid values(#{environments.keys.join(',')})" unless environments.keys.include? opts[:environment]
+Trollop::die :file, "must exist" if opts[:file].nil? || !File.exist?(opts[:file])
+Trollop::die :groups, "must exist" if opts[:groups].length == 0
+
+settings = set_environment(opts[:environment])
+settings.delete("region")
+
+dataset = CSV.read(opts[:file]) 
+
+
+@iam = Fog::AWS::IAM.new(settings)
+@ses = Fog::AWS::SES.new(settings)
+dataset.each do |row|
+	if row.length>0
+		user_name = row[0]
+		email = row[1]
+		@iam.create_user(user_name) if @iam.users.get(user_name).nil?
+		
+		opts[:groups].each {|group| @iam.add_user_to_group(group, user_name) }
+
+		send_email(email, @ses, {:password => "", :user_name => user_name, :url => ""})
+	end
+end
+
+
+
+
