@@ -6,14 +6,8 @@ require "fileutils"
 require 'trollop'
 require 'yaml'
 
-
-def set_environment(environment)
-	environments[environment]
-end
-
-def environments
-	YAML::load_file(File.join(File.dirname(File.expand_path(__FILE__)), 'config.yml'))
-end
+require_relative 'environment.rb'
+include Environment
 
 opts = Trollop::options do
 	opt :environment, "", :type => :string
