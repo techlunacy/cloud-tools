@@ -1,0 +1,48 @@
+#! /usr/bin/env ruby
+require "rubygems"
+require "bundler/setup"
+require "fog"
+require "fileutils"
+require 'trollop'
+require 'yaml'
+
+require_relative 'environment.rb'
+require_relative 'ssh.rb'
+require_relative 'menu.rb'
+
+include Environment
+include Menu
+
+def get_instance(settings)
+	@connection = Fog::Compute::AWS.new(settings)
+	instances = @connection.servers
+	instances.reject!{|i| i.state !='running'}
+
+	instance_index = menu('server', instances.map { |e| e.tags['Name'] || e.id })
+
+	Ssh.new(instances[instance_index])
+end
+
+def get_gateway(settings)
+	@connection = Fog::Compute::AWS.new(settings)
+	instances = @connection.servers
+	instances.reject!{|i| i.state !='running'}
+
+	instance = instances.reject { |e| e.tags['gateway'].nil? }.first
+
+	Ssh.new(instance) unless instance.nil?
+end
+
+opts = Trollop::options do
+	opt :environment, "", :type => :string
+end	
+environment = opts[:environment] || get_environment
+settings = set_environment(environment)
+instance = get_instance(settings)
+
+gateway = get_gateway(settings)
+
+instance.gateway = gateway
+puts instance.cmd
+exec(instance.cmd)
+

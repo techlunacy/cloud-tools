@@ -1,0 +1,45 @@
+#! /usr/bin/env ruby
+require "rubygems"
+require "bundler/setup"
+require "fog"
+require "fileutils"
+require 'trollop'
+require 'yaml'
+
+require_relative 'environment.rb'
+require_relative 'ssh.rb'
+include Environment
+
+SUB_COMMANDS = %w(get put)
+opts = Trollop::options do
+	opt :environment, "", :type => :string, :default => ""
+	stop_on SUB_COMMANDS
+end	
+cmd = ARGV.shift # get the subcommand
+cmd_opts = case cmd
+  when "get" # parse delete options
+    Trollop::options do
+      opt :get, "get the file", :default => true
+    end
+  when "put"  # parse copy options
+    Trollop::options do
+      opt :put, "puts the file", :default => true
+    end
+  else
+    Trollop::die "unknown subcommand #{cmd.inspect}"
+  end
+
+environment = opts[:environment] || get_environment
+settings = set_environment(environment)
+
+instance = get_instance(settings)
+
+remote_path = get_path('remote')
+local_path = get_path('local')
+
+ssh_cmd = if !cmd_opts[:get].nil?
+	"scp -i #{instance.key_path} #{instance.user_at_url}:#{remote_path} #{local_path}"
+elsif !cmd_opts[:put].nil?
+	"scp -i #{instance.key_path} #{local_path} #{instance.user_at_url}:#{remote_path}"
+end	
+exec(ssh_cmd)
