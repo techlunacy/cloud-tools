@@ -1,4 +1,4 @@
-class Ssh
+class SshInstance
 	attr_accessor :key_pair_name, :user,:instance, :gateway
 
 	def initialize(aws_instance)
@@ -33,6 +33,12 @@ class Ssh
 
 	def user_at_url
 		"#{user}@#{url}"
+	end
+
+	def login
+		puts self.cmd
+
+		exec(self.cmd)
 	end
 
 	private 
