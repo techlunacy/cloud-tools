@@ -7,7 +7,7 @@ require 'trollop'
 require 'yaml'
 
 require_relative 'environment.rb'
-require_relative 'ssh.rb'
+require_relative 'ssh_instance.rb'
 require_relative 'menu.rb'
 
 include Environment
@@ -19,8 +19,8 @@ def get_instance(settings)
 	instances.reject!{|i| i.state !='running'}
 
 	instance_index = menu('server', instances.map { |e| e.tags['Name'] || e.id })
+  SshInstance.new(instances[instance_index])
 
-	Ssh.new(instances[instance_index])
 end
 
 def get_gateway(settings)
@@ -30,7 +30,7 @@ def get_gateway(settings)
 
 	instance = instances.reject { |e| e.tags['gateway'].nil? }.first
 
-	Ssh.new(instance) unless instance.nil?
+	SshInstance.new(instance) unless instance.nil?
 end
 
 opts = Trollop::options do
