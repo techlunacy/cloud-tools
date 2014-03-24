@@ -13,34 +13,7 @@ require_relative 'menu.rb'
 include Environment
 include Menu
 
-def get_instance(regex)
-  instances = @connection.servers
-  instances.select!{|i| i.state == 'running' }
-  
-  instances.select!{|i| get_name(i) =~ Regexp.new(regex)} unless regex.nil?
-  
-  instances.sort!{|x,y| get_name(x) <=> get_name(y)}
 
-  instance_index = menu('server', instances.map { |e| get_name(e) })
-
-  SshInstance.new(instances[instance_index])
-end
-
-def get_name(instance)
-	last_octet = instance.private_ip_address.split('.').last
-	name = instance.tags['Name'] || instance.id
-	"#{name}#{last_octet}"
-end
-
-def get_gateway
-
-	instances = @connection.servers
-	instances.reject!{|i| i.state !='running'}
-
-	instance = instances.reject { |e| e.tags['gateway'].nil? }.first
-
-	SshInstance.new(instance) unless instance.nil?
-end
 
 opts = Trollop::options do
 	opt :environment, "", :type => :string
@@ -50,10 +23,8 @@ end
 environment = opts[:environment] || get_environment
 regex = opts[:regex]
 settings = set_environment(environment)
-@connection = Fog::Compute::AWS.new(settings)
 
-instance = get_instance(regex)
-instance.gateway = get_gateway
+instance = SshInstance.get(settings, regex)
 
 instance.login
 
