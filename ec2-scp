@@ -7,14 +7,18 @@ require 'trollop'
 require 'yaml'
 
 require_relative 'environment.rb'
-require_relative 'ssh.rb'
+require_relative 'menu.rb'
+require_relative 'ssh_instance.rb'
 include Environment
+include Menu
 
 SUB_COMMANDS = %w(get put)
 opts = Trollop::options do
 	opt :environment, "", :type => :string, :default => ""
+  opt :regex, "", :type => :string
 	stop_on SUB_COMMANDS
 end	
+
 cmd = ARGV.shift # get the subcommand
 cmd_opts = case cmd
   when "get" # parse delete options
@@ -29,17 +33,17 @@ cmd_opts = case cmd
     Trollop::die "unknown subcommand #{cmd.inspect}"
   end
 
+
 environment = opts[:environment] || get_environment
 settings = set_environment(environment)
+regex = opts[:regex]
 
-instance = get_instance(settings)
+instance = SshInstance.get(settings,regex)
 
 remote_path = get_path('remote')
 local_path = get_path('local')
 
-ssh_cmd = if !cmd_opts[:get].nil?
-	"scp -i #{instance.key_path} #{instance.user_at_url}:#{remote_path} #{local_path}"
-elsif !cmd_opts[:put].nil?
-	"scp -i #{instance.key_path} #{local_path} #{instance.user_at_url}:#{remote_path}"
-end	
+ssh_cmd = "scp -i #{instance.key_path} -r #{instance.user_at_url}:#{remote_path} #{local_path}" if !cmd_opts[:get].nil?
+ssh_cmd = "scp -i #{instance.key_path} -r #{local_path} #{instance.user_at_url}:#{remote_path}" if !cmd_opts[:put].nil?
+puts ssh_cmd
 exec(ssh_cmd)
