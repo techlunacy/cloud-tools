@@ -11,6 +11,25 @@ class SshInstance
 		"~/keys/#{key_pair_name}.pem"
 	end
 
+	def self.get(settings, regex)
+		connection = Fog::Compute::AWS.new(settings)
+	  	instances = connection.servers
+	  	instances.select!{|i| i.state == 'running' }
+	  
+	  	instances.select!{|i| get_name(i) =~ Regexp.new(regex)} unless regex.nil?
+
+		instance  = if instances.size == 1
+			SshInstance.new(instances.first) 
+		else
+		  	instances.sort!{|x,y| get_name(x) <=> get_name(y)}
+		  	instance_index = menu('server', instances.map { |e| get_name(e) })
+  		  	SshInstance.new(instances[instance_index])
+		end
+		instance.gateway = get_gateway(settings)
+		instance
+	end
+
+
 	def url
 		if bypass_gateway
 			self.instance.public_ip_address || self.instance.dns_name
@@ -23,12 +42,9 @@ class SshInstance
 		"/home/#{gateway.user}/keys/#{key_pair_name}.pem"
 	end
 
-	def cmd
-		if bypass_gateway
-			ssh_cmd
-		else
-			ssh_cmd_with_gateway
-		end	
+	def cmd	
+		return ssh_cmd if bypass_gateway
+		return ssh_cmd_with_gateway
 	end
 
 	def user_at_url
@@ -42,6 +58,21 @@ class SshInstance
 	end
 
 	private 
+	def self.get_name(aws_instance)
+		last_octet = aws_instance.private_ip_address.split('.').last
+		name = aws_instance.tags['Name'] || aws_instance.id
+		"#{name}#{last_octet}"
+	end	
+
+	def self.get_gateway(settings)
+		connection = Fog::Compute::AWS.new(settings)
+		instances = connection.servers
+		instances.reject!{|i| i.state !='running'}
+
+		instance = instances.reject { |e| e.tags['gateway'].nil? }.first
+
+		SshInstance.new(instance) unless instance.nil?
+	end		
 
 	def bypass_gateway
 	 	gateway.nil? || i_am_gateway
@@ -52,10 +83,18 @@ class SshInstance
 	end
 
 	def ssh_cmd
-		"ssh #{user_at_url} -i #{key_path}"	
+		"ssh -i #{key_path} -A #{user_at_url}"	
+	end
+
+	def gateway_ssh
+		"ssh  -i #{gateway.key_path} -A -t #{gateway.user_at_url}"
+	end
+
+	def remote_ssh
+ 		"ssh -A -i #{remote_key_path} #{user_at_url}"
 	end
 
 	def ssh_cmd_with_gateway
-		"ssh  -i #{gateway.key_path} -A -t #{gateway.user_at_url} ssh -A -i #{remote_key_path} #{user_at_url}"	
+		"#{gateway_ssh} #{remote_ssh}"
 	end
 end
