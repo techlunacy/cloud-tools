@@ -18,13 +18,14 @@ class SshInstance
 	  
 	  	instances.select!{|i| get_name(i) =~ Regexp.new(regex)} unless regex.nil?
 
-		instance  = if instances.size == 1
-			SshInstance.new(instances.first) 
+		aws_instance  = if instances.size == 1
+			instances.first
 		else
 		  	instances.sort!{|x,y| get_name(x) <=> get_name(y)}
 		  	instance_index = menu('server', instances.map { |e| get_name(e) })
-  		  	SshInstance.new(instances[instance_index])
+  		  	instances[instance_index]
 		end
+		instance = self.new(aws_instance)
 		instance.gateway = get_gateway(settings)
 		instance
 	end
@@ -57,7 +58,10 @@ class SshInstance
 		exec(self.cmd)
 	end
 
+
+
 	private 
+
 	def self.get_name(aws_instance)
 		last_octet = aws_instance.private_ip_address.split('.').last
 		name = aws_instance.tags['Name'] || aws_instance.id
