@@ -16,7 +16,7 @@ class ScpInstance < SshInstance
 	end
 
 	def put_scp_cmd
-		"scp -i #{instance.key_path} -r #{instance.local_path} #{instance.user_at_url}:#{instance.remote_path}"
+		"scp -i #{self.key_path} -r #{self.local_path} #{self.user_at_url}:#{self.remote_path}"
 	end
 
 	def get_cmd_with_gateway
