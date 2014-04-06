@@ -1,22 +1,49 @@
+require 'erb'
 class SshInstance
-	attr_accessor :key_pair_name, :user,:instance, :gateway
+	attr_accessor :key_pair_name, :instance, :gateway, :environment
 
-	def initialize(aws_instance)
+	def initialize(aws_instance, environment)
+		
 		self.key_pair_name = aws_instance.key_pair.name
 		self.instance = aws_instance
-		self.user = 'ec2-user'
+		self.environment = environment
+
+	end
+
+	def user
+		ssh_settings["user"]
+	end
+
+	def ssh_settings
+
+		ssh_settings_defaults  = YAML::load(parse_config('defaults.yml'))
+		ssh_settings_environment  = if File.exists?(File.join(File.dirname(File.expand_path(__FILE__)), "#{environment}.yml"))
+			YAML::load(parse_config("#{environment}.yml"))
+		else
+		 {}
+		end
+		ssh_settings_defaults.merge(ssh_settings_environment)
+	end
+
+	def parse_config(file)
+		root_path = File.dirname(File.expand_path(__FILE__))
+		file_content = File.new(File.join(root_path, file)).read
+
+		ERB.new(file_content).result(binding)
 	end
 
 	def key_path
-		"~/keys/#{key_pair_name}.pem"
+		ssh_settings["key_path"]
 	end
 
-	def self.get(settings, regex)
+	def self.get(environment, settings, regex)
 		connection = Fog::Compute::AWS.new(settings)
 	  	instances = connection.servers
 	  	instances.select!{|i| i.state == 'running' }
 	  
 	  	instances.select!{|i| get_name(i) =~ Regexp.new(regex)} unless regex.nil?
+
+	  	raise "No Instances Found" if instances.size == 0
 
 		aws_instance  = if instances.size == 1
 			instances.first
@@ -25,8 +52,8 @@ class SshInstance
 		  	instance_index = menu('server', instances.map { |e| get_name(e) })
   		  	instances[instance_index]
 		end
-		instance = self.new(aws_instance)
-		instance.gateway = get_gateway(settings)
+		instance = self.new(aws_instance, environment)
+		instance.gateway = get_gateway(settings, environment)
 		instance
 	end
 
@@ -40,7 +67,7 @@ class SshInstance
 	end
 
 	def remote_key_path
-		"/home/#{gateway.user}/keys/#{key_pair_name}.pem"
+		ssh_settings["remote_key_path"]
 	end
 
 	def cmd	
@@ -58,6 +85,9 @@ class SshInstance
 		exec(self.cmd)
 	end
 
+	def gateway_user
+		return gateway.user unless gateway.nil?
+	end
 
 
 	private 
@@ -68,14 +98,14 @@ class SshInstance
 		"#{name}#{last_octet}"
 	end	
 
-	def self.get_gateway(settings)
+	def self.get_gateway(settings, environment)
 		connection = Fog::Compute::AWS.new(settings)
 		instances = connection.servers
 		instances.reject!{|i| i.state !='running'}
 
 		instance = instances.reject { |e| e.tags['gateway'].nil? }.first
 
-		SshInstance.new(instance) unless instance.nil?
+		SshInstance.new(instance, environment) unless instance.nil?
 	end		
 
 	def bypass_gateway

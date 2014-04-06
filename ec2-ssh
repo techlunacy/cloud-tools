@@ -24,7 +24,7 @@ environment = opts[:environment] || get_environment
 regex = opts[:regex]
 settings = set_environment(environment)
 
-instance = SshInstance.get(settings, regex)
+instance = SshInstance.get(environment, settings, regex)
 
 instance.login
 

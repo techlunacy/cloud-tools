@@ -39,7 +39,7 @@ environment = opts[:environment] || get_environment
 settings = set_environment(environment)
 regex = opts[:regex]
 
-instance = ScpInstance.get(settings,regex)
+instance = ScpInstance.get(environment, settings, regex)
 
 instance.remote_path = get_path('remote')
 instance.local_path = get_path('local')
