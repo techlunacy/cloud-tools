@@ -68,9 +68,10 @@ class SshInstance
 	  	raise "No Instances Found" if instances.size == 0
 
 	  	instances.sort!{|x,y| get_name(x) <=> get_name(y)}
+	  	gateway = get_gateway(settings, environment)
 	  	instances.map do |e|  
 			instance = self.new(e, environment)
-			instance.gateway = get_gateway(settings, environment)
+			instance.gateway = gateway
 			instance
 	  	end
 

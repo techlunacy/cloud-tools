@@ -40,12 +40,13 @@ settings = set_environment(environment)
 regex = opts[:regex]
 
 instances = ScpInstance.all(environment, settings, regex)
+  remote_path = get_path('remote')
+  local_path = get_path('local')
 instances.each do |instance|
-  instance.remote_path = get_path('remote')
-  instance.local_path = get_path('local')
-
+  instance.remote_path = remote_path
+  instance.local_path = local_path
   ssh_cmd = instance.get_cmd if !cmd_opts[:get].nil?
   ssh_cmd = instance.put_cmd if !cmd_opts[:put].nil?
   puts ssh_cmd
-  exec(ssh_cmd)
+  `#{ssh_cmd}`
 end  
