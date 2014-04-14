@@ -58,6 +58,24 @@ class SshInstance
 	end
 
 
+	def self.all(environment, settings, regex)
+		connection = Fog::Compute::AWS.new(settings)
+	  	instances = connection.servers
+	  	instances.select!{|i| i.state == 'running' }
+	  
+	  	instances.select!{|i| get_name(i) =~ Regexp.new(regex)} unless regex.nil?
+
+	  	raise "No Instances Found" if instances.size == 0
+
+	  	instances.sort!{|x,y| get_name(x) <=> get_name(y)}
+	  	instances.map do |e|  
+			instance = self.new(e, environment)
+			instance.gateway = get_gateway(settings, environment)
+			instance
+	  	end
+
+	end
+
 	def url
 		if bypass_gateway
 			self.instance.public_ip_address || self.instance.dns_name
