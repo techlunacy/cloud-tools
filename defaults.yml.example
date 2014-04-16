@@ -1,0 +1,3 @@
+user: ec2-user
+key_path: "~/keys/<%= key_pair_name %>.pem"
+remote_key_path: "/home/<%= gateway_user %>/keys/<%= key_pair_name %>.pem"
