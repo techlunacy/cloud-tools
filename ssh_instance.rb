@@ -32,30 +32,24 @@ class SshInstance
 		ERB.new(file_content).result(binding)
 	end
 
+	def vpc_id
+		self.instance.vpc_id
+	end
+
 	def key_path
 		ssh_settings["key_path"]
 	end
 
 	def self.get(environment, settings, regex)
-		connection = Fog::Compute::AWS.new(settings)
-	  	instances = connection.servers
-	  	instances.select!{|i| i.state == 'running' }
-	  
-	  	instances.select!{|i| get_name(i) =~ Regexp.new(regex)} unless regex.nil?
-
-	  	raise "No Instances Found" if instances.size == 0
-
-		aws_instance  = if instances.size == 1
+		instances = all(environment, settings, regex)
+		if instances.size == 1
 			instances.first
 		else
-		  	instances.sort!{|x,y| get_name(x) <=> get_name(y)}
-		  	instance_index = menu('server', instances.map { |e| get_name(e) })
+		  	instance_index = menu('server', instances.map { |e| get_name(e.instance) })
   		  	instances[instance_index]
 		end
-		instance = self.new(aws_instance, environment)
-		instance.gateway = get_gateway(settings, environment)
-		instance
 	end
+
 
 
 	def self.all(environment, settings, regex)
@@ -128,15 +122,19 @@ class SshInstance
 	end		
 
 	def bypass_gateway
-	 	gateway.nil? || i_am_gateway
+	 	gateway.nil? || i_am_gateway || gateway_in_another_castle
 	end 
+
+	def gateway_in_another_castle
+		vpc_id !=gateway.vpc_id
+	end
 
 	def i_am_gateway
 		self.gateway.instance.public_ip_address == self.instance.public_ip_address
 	end
 
 	def ssh_cmd
-		"ssh -i #{key_path} -A #{user_at_url}"	
+		"ssh -o StrictHostKeyChecking=no -i #{key_path} -A #{user_at_url}"	
 	end
 
 	def gateway_ssh
