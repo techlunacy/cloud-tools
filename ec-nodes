@@ -1,0 +1,29 @@
+#! /usr/bin/env ruby
+require "rubygems"
+require "bundler/setup"
+require "fog"
+require "fileutils"
+require 'trollop'
+require 'yaml'
+
+require_relative 'environment.rb'
+require_relative 'menu.rb'
+
+include Environment
+include Menu
+
+opts = Trollop::options do
+	opt :environment, "", :type => :string
+end	
+
+environment = opts[:environment] || get_environment
+settings = set_environment(environment)
+
+@connection = Fog::AWS::Elasticache.new(settings)
+
+@connection.clusters.each do |cache|
+	cache.nodes.each do |node|
+		print node["Address"]
+		print "\n"
+	end
+end
