@@ -101,7 +101,7 @@ class SshInstance
 	def gateway_user
 		return gateway.user unless gateway.nil?
 	end
-
+	
 
 	private 
 
