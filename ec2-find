@@ -1,0 +1,23 @@
+#! /usr/bin/env ruby
+require "rubygems"
+require "bundler/setup"
+require "fog"
+require "fileutils"
+require 'trollop'
+require 'yaml'
+
+require_relative 'environment.rb'
+include Environment
+
+opts = Trollop::options do
+	opt :instance, "", :type => :string
+end	
+Trollop::die :instance, "needs an instance id" unless opts[:instance]
+
+
+settings = set_environment(opts[:environment])
+environments.each do |key, settings|
+@connection = Fog::Compute::AWS.new(settings)
+	instance = 	@connection.servers.get(opts[:instance])
+	puts key unless instance.nil?
+end
