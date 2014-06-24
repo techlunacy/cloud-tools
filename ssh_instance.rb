@@ -3,8 +3,7 @@ class SshInstance
 	attr_accessor :key_pair_name, :instance, :gateway, :environment
 
 	def initialize(aws_instance, environment)
-		
-		self.key_pair_name = aws_instance.key_pair.name
+		self.key_pair_name = aws_instance.key_pair.name 
 		self.instance = aws_instance
 		self.environment = environment
 
@@ -54,8 +53,9 @@ class SshInstance
 
 	def self.all(environment, settings, regex)
 		connection = Fog::Compute::AWS.new(settings)
-	  	instances = connection.servers
-	  	instances.select!{|i| i.state == 'running' }
+	  	instances = connection.servers.all('instance-id' => [])
+	  	instances.select!{|i| i.state == 'running' && i.tags['Name'] !='NAT' }
+
 	  
 	  	instances.select!{|i| get_name(i) =~ Regexp.new(regex)} unless regex.nil?
 
@@ -113,12 +113,12 @@ class SshInstance
 
 	def self.get_gateway(settings, environment)
 		connection = Fog::Compute::AWS.new(settings)
-		instances = connection.servers
-		instances.reject!{|i| i.state !='running'}
+		instances = connection.servers.all('instance-id' => [])
+		instances.reject!{|i| i.state !='running' || i.tags['gateway'].nil? }
+		puts instances.first.id
+		# instance = instances.reject { |e| e.tags['gateway'].nil? }.first
 
-		instance = instances.reject { |e| e.tags['gateway'].nil? }.first
-
-		SshInstance.new(instance, environment) unless instance.nil?
+		SshInstance.new(instances.first, environment) unless instances.size == 0
 	end		
 
 	def bypass_gateway
