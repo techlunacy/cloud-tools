@@ -49,17 +49,11 @@ class SshInstance
 		end
 	end
 
-
-
 	def self.all(environment, settings, regex)
-		connection = Fog::Compute::AWS.new(settings)
-	  	instances = connection.servers.all('instance-id' => [])
-	  	instances.select!{|i| i.state == 'running' && i.tags['Name'] !='NAT' }
-
-	  
+		instances = running_instances(settings)
 	  	instances.select!{|i| get_name(i) =~ Regexp.new(regex)} unless regex.nil?
 
-	  	raise "No Instances Found" if instances.size == 0
+	  	raise "No Instances Found" if instances.nil? or instances.size == 0
 
 	  	instances.sort!{|x,y| get_name(x) <=> get_name(y)}
 	  	gateway = get_gateway(settings, environment)
@@ -105,6 +99,12 @@ class SshInstance
 
 	private 
 
+	def self.running_instances(settings)
+		connection = Fog::Compute::AWS.new(settings)
+	  	instances = connection.servers.all('instance-id' => [])
+	  	instances.select{|i| i.state == 'running' && i.tags['Name'] !='NAT' }
+	end
+
 	def self.get_name(aws_instance)
 		last_octet = aws_instance.private_ip_address.split('.').last
 		name = aws_instance.tags['Name'] || aws_instance.id
@@ -112,11 +112,9 @@ class SshInstance
 	end	
 
 	def self.get_gateway(settings, environment)
-		connection = Fog::Compute::AWS.new(settings)
-		instances = connection.servers.all('instance-id' => [])
-		instances.reject!{|i| i.state !='running' || i.tags['gateway'].nil? }
-		puts instances.first.id
-		# instance = instances.reject { |e| e.tags['gateway'].nil? }.first
+		instances = running_instances(settings)
+
+		instances.reject!{|i| i.tags['gateway'].nil? }
 
 		SshInstance.new(instances.first, environment) unless instances.size == 0
 	end		
