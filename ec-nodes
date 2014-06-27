@@ -14,6 +14,7 @@ include Menu
 
 opts = Trollop::options do
 	opt :environment, "", :type => :string
+	opt :regex, "", :type => :string
 end	
 
 environment = opts[:environment] || get_environment
@@ -22,7 +23,13 @@ settings = set_environment(environment)
 @connection = Fog::AWS::Elasticache.new(settings)
 
 @connection.clusters.each do |cache|
-	cache.nodes.each do |node|
+	return if cache.nodes.nil?
+	nodes = unless opts[:regex].nil?
+			cache.nodes.select{|i| i["Address"] =~ Regexp.new(opts[:regex])} 
+		else
+			cache.nodes
+		end
+	nodes.each do |node|
 		print node["Address"]
 		print "\n"
 	end
