@@ -1,6 +1,6 @@
 require 'erb'
 class SshInstance
-	attr_accessor :key_pair_name, :instance, :gateway, :environment
+	attr_accessor :key_pair_name, :instance, :gateway, :environment, :user_name
 
 	def initialize(aws_instance, environment)
 		self.key_pair_name = aws_instance.key_pair.name 
@@ -10,7 +10,11 @@ class SshInstance
 	end
 
 	def user
-		ssh_settings["user"]
+		self.user_name || ssh_settings["user"]
+	end
+
+	def user=(user_name)
+		self.user_name = user_name
 	end
 
 	def ssh_settings
@@ -86,7 +90,8 @@ class SshInstance
 		"#{user}@#{url}"
 	end
 
-	def login
+	def login()
+		puts user
 		puts self.cmd
 
 		exec(self.cmd)
@@ -108,7 +113,7 @@ class SshInstance
 	def self.get_name(aws_instance)
 		last_octet = aws_instance.private_ip_address.split('.').last
 		name = aws_instance.tags['Name'] || aws_instance.id
-		"#{name}#{last_octet}"
+		"#{name}#{last_octet}(#{aws_instance.private_ip_address})"
 	end	
 
 	def self.get_gateway(settings, environment)
@@ -140,7 +145,7 @@ class SshInstance
 	end
 
 	def remote_ssh
- 		"ssh -A -i #{remote_key_path} #{user_at_url}"
+ 		"ssh -A -o StrictHostKeyChecking=no -i #{remote_key_path} #{user_at_url}"
 	end
 
 	def ssh_cmd_with_gateway
