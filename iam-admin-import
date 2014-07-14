@@ -1,0 +1,121 @@
+#! /usr/bin/env ruby
+require "rubygems"
+require "bundler/setup"
+require "fog"
+require "fileutils"
+require 'trollop'
+require 'yaml'
+require 'awesome_print'
+require 'csv'
+
+require_relative 'environment.rb'
+require_relative 'menu.rb'
+
+include Environment
+include Menu
+
+def send_email(connection, variables)
+	message= {'Subject' =>{}, 'Body' =>{'Text'=>{},'Html'=>{}}}
+	filename = 'templates/welcome_email.txt.erb'  # @arg1 and @arg2 are used in example.rhtml
+
+	email_body = ERB.new(File.read(filename)).result(binding)
+
+	message['Subject']['Data'] = variables[:subject]
+	message['Body']['Text']['Data'] = email_body
+	puts variables[:email]
+	connection.send_email(variables[:from],{'ToAddresses' => [variables[:email]]},  message)
+end
+
+def password()
+	array = (0...5).map{ ('a'..'z').to_a[rand(26)] }	
+	array = array + (0...5).map{ ('A'..'Z').to_a[rand(26)] }
+	array = array + (0...2).map{ (0..19).to_a[rand(20)] }
+	array.sort_by{rand}.join
+end
+
+def get_account_id(settings)
+	@connection = Fog::Compute::AWS.new(settings)
+	@connection.security_groups.all.first.owner_id
+end
+
+def create_group(name, permissions)
+	groups = @connection.list_groups.body["Groups"]
+	filtered_groups = groups.find {|x| x["GroupName"] == name }
+	if !filtered_groups.nil?
+		puts filtered_groups
+		puts "#{name} group exists"
+		return
+	end
+	@connection.create_group(name)
+	@connection.put_group_policy(name, name, permissions)
+	puts "#{name} group created"
+end
+
+def create_user(name, password)
+	user = @connection.users.get(name)
+	unless user.nil?
+		puts "#{name} user exists"
+		return
+	end
+	user = @connection.users.new({:id => name})
+	user.save
+	@connection.create_login_profile(name, password)
+	puts "#{name} created"
+	access_key = user.access_keys.new
+	access_key.save
+	access_key
+end
+
+def assign_user(group, name)
+	@connection.add_user_to_group(group, name)
+	puts "#{name} assigned to #{group}"
+end
+
+def email_connection
+	settings = set_environment(email_data['account'])
+	settings.delete("region")
+	Fog::AWS::SES.new(settings)
+end
+
+def iam_data
+	YAML::load_file(File.join(File.dirname(File.expand_path(__FILE__)), 'iam.yml'))
+end
+
+def email_data
+	YAML::load_file(File.join(File.dirname(File.expand_path(__FILE__)), 'email.yml'))
+end
+
+access_key = input("please enter access_key")
+secret_access_key = input("please enter secret_access_key")
+
+settings = {:aws_access_key_id => access_key,
+  			:aws_secret_access_key =>	 secret_access_key}
+
+account_id = get_account_id(settings)
+
+
+@connection = Fog::AWS::IAM.new(settings)
+iam_data.keys.each do |group_name|
+	policy = {
+	  'Statement' => [
+	    'Effect' => 'Allow',
+	    'Action' => '*',
+	    'Resource' => '*'
+	  ]
+	}
+	create_group(group_name, policy )
+
+	url = "https://#{account_id}.signin.aws.amazon.com/console"
+	subject = "Welcome to AWS Account #{account_id}"
+	iam_data[group_name].each do |user|
+		user_name = user['username']
+		email = user['email']
+		user_password = password()
+		access_key = create_user(user_name, user_password)
+		unless access_key.nil?
+			assign_user(group_name, user_name)
+			variables = {:from => email_data['from'], :email => email, :subject => subject, :user_name => user_name, :password => user_password, :url => url, :access_key => access_key.id, :secret_access_key => access_key.secret_access_key  }
+			send_email(email_connection, variables)
+		end
+	end
+end
