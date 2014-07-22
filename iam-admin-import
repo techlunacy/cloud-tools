@@ -16,7 +16,7 @@ include Menu
 
 def send_email(connection, variables)
 	message= {'Subject' =>{}, 'Body' =>{'Text'=>{},'Html'=>{}}}
-	filename = 'templates/welcome_email.txt.erb'  # @arg1 and @arg2 are used in example.rhtml
+	filename = File.dirname(__FILE__) + '/templates/welcome_email.txt.erb'  # @arg1 and @arg2 are used in example.rhtml
 
 	email_body = ERB.new(File.read(filename)).result(binding)
 
@@ -84,7 +84,6 @@ end
 def email_data
 	YAML::load_file(File.join(File.dirname(File.expand_path(__FILE__)), 'email.yml'))
 end
-
 access_key = input("please enter access_key")
 secret_access_key = input("please enter secret_access_key")
 
@@ -94,7 +93,6 @@ settings = {:aws_access_key_id => access_key,
 account_id = get_account_id(settings)
 
 
-@connection = Fog::AWS::IAM.new(settings)
 iam_data.keys.each do |group_name|
 	policy = {
 	  'Statement' => [
@@ -103,6 +101,7 @@ iam_data.keys.each do |group_name|
 	    'Resource' => '*'
 	  ]
 	}
+	@connection = Fog::AWS::IAM.new(settings)	
 	create_group(group_name, policy )
 
 	url = "https://#{account_id}.signin.aws.amazon.com/console"
