@@ -112,8 +112,8 @@ class SshInstance
 
 	def self.get_name(aws_instance)
 		last_octet = aws_instance.private_ip_address.split('.').last
-		name = aws_instance.tags['Name'] || aws_instance.id
-		"#{name}#{last_octet}(#{aws_instance.private_ip_address})"
+		name = "#{aws_instance.tags['Name']}#{last_octet}" || aws_instance.id
+		"#{name}(#{aws_instance.private_ip_address})"
 	end	
 
 	def self.get_gateway(settings, environment)
