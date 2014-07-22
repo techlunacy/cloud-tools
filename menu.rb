@@ -3,12 +3,16 @@ module Menu
 		list_values.each_with_index do |key, index|
 			puts "#{index + 1}) #{key}"
 		end
-		puts "please select the #{type}"
-		STDIN.gets.to_i - 1
+		value = input "please select the #{type}"
+		value.to_i - 1
 	end
 	
 	def get_path(where)
-		puts "please select the #{where} path"
-		STDIN.gets.delete("\n")
+		input "please select the #{where} path"
 	end	
+
+	def input(something)
+		puts something
+		STDIN.gets.delete("\n")
+	end
 end
