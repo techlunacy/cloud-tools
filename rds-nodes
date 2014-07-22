@@ -1,0 +1,32 @@
+#! /usr/bin/env ruby
+require "rubygems"
+require "bundler/setup"
+require "fog"
+require "fileutils"
+require 'trollop'
+require 'yaml'
+
+require_relative 'environment.rb'
+require_relative 'menu.rb'
+
+include Environment
+include Menu
+
+opts = Trollop::options do
+	opt :environment, "", :type => :string
+	opt :regex, "", :type => :string
+end	
+
+environment = opts[:environment] || get_environment
+settings = set_environment(environment)
+
+@connection = Fog::AWS::RDS.new(settings)
+@connection.servers.each do |server|
+	node = unless opts[:regex].nil?
+			server.endpoint["Address"] if server.endpoint["Address"] =~ Regexp.new(opts[:regex])
+		else
+			server.endpoint["Address"]
+		end
+		print node
+		print "\n"
+end
