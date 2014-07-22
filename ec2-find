@@ -19,5 +19,8 @@ settings = set_environment(opts[:environment])
 environments.each do |key, settings|
 @connection = Fog::Compute::AWS.new(settings)
 	instance = 	@connection.servers.get(opts[:instance])
-	puts key unless instance.nil?
+	unless instance.nil?
+		puts "#{key} #{instance.tags['Name']}"
+		exit
+	end
 end
