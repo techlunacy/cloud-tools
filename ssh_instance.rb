@@ -71,7 +71,7 @@ class SshInstance
 
 	def url
 		if bypass_gateway
-			self.instance.public_ip_address || self.instance.dns_name
+			self.instance.public_ip_address || self.instance.dns_name || self.instance.private_ip_address
 		else
 			self.instance.private_ip_address
 		end
