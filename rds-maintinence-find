@@ -1,0 +1,40 @@
+#! /usr/bin/env ruby
+require "rubygems"
+require "bundler/setup"
+require "fog"
+require "fileutils"
+require 'trollop'
+require 'yaml'
+
+require_relative 'environment.rb'
+require_relative 'menu.rb'
+
+include Environment
+include Menu
+
+# Maintenance Schedule Start Date: 8 Oct 2014 22:00 UTC 
+# Maintenance Schedule End Date: 15 Oct 2014 21:59 UTC
+
+environments.each do |name, settings|
+# settings = set_environment(environment)
+	@connection = Fog::AWS::RDS.new(settings)
+	if @connection.servers.size > 0
+		@connection.servers.each do |server|
+				values = server.preferred_maintenance_window.split((/[:,-]/))
+				start_hours = values[1].to_i
+				start_minutes = values[2].to_i
+				end_hours = values[4].to_i				
+				end_minutes = values[5].to_i
+
+				days = {}
+				DateTime.new(2014,10,8, start_hours, start_minutes).step( DateTime.new(2014,10,16, start_hours, start_minutes) ).to_a.each do |date|
+					days[date.strftime("%^a")] = date
+				end
+				maintinence_time = days[values[0].upcase]
+
+
+				print "#{name} | #{server.id} | #{maintinence_time.new_offset('+10:00')}"
+				print "\n"
+		end
+	end
+end
