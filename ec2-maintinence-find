@@ -1,0 +1,49 @@
+#! /usr/bin/env ruby
+require "rubygems"
+require "bundler/setup"
+require "fog"
+require "fileutils"
+require 'trollop'
+require 'yaml'
+
+require_relative 'environment.rb'
+include Environment
+
+require 'csv'
+def write_file(records)
+	time=Time.now.strftime('%Y%m%d%H%M%S%L')
+	file_name = "rebooted-#{time}-response.csv"
+	puts file_name
+	CSV.open(file_name, "wb") do |csv|
+		csv << records.first.keys # adds the attributes name on the first line
+		records.each do |hash|
+			csv << hash.values
+		end
+	end
+end
+
+
+
+hashes = []
+
+environments.each do |key, settings|
+	@connection = Fog::Compute::AWS.new(settings)
+		@connection.servers.all.each do |instance|
+			response = @connection.describe_instance_status({"InstanceId" =>instance.id })
+			# puts instance.inspect
+
+			response[:body]["instanceStatusSet"].each_with_object("foo") do |item, obj|
+  # puts "#{obj}: #{item}"
+				 if item["eventsSet"].size>0
+				  	hash = item["eventsSet"].first
+				  	hash["notBefore"] = DateTime.parse(hash["notBefore"]).new_offset('+10:00')
+				  	hash["notAfter"] = DateTime.parse(hash["notAfter"]).new_offset('+10:00')
+				  	hash["instance-name"] = instance.tags['Name']
+				  	hash["account"] = key
+				  	hashes << hash
+				end
+	end
+
+	end
+end
+write_file(hashes)
