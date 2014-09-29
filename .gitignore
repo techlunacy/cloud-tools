@@ -1,5 +1,6 @@
 *.gem
 *.csv
+*.xlsx
 *.rbc
 *.yml
 *.json
