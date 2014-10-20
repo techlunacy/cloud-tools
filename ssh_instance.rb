@@ -1,6 +1,6 @@
 require 'erb'
 class SshInstance
-	attr_accessor :key_pair_name, :instance, :gateway, :environment, :user_name
+	attr_accessor :key_pair_name, :instance, :gateway, :environment, :user_name, :verbose
 
 	def initialize(aws_instance, environment)
 		self.key_pair_name = aws_instance.key_pair.name 
@@ -15,6 +15,10 @@ class SshInstance
 
 	def user=(user_name)
 		self.user_name = user_name
+	end
+
+	def is_verbose	=(is_verbose)
+		@verbose = is_verbose
 	end
 
 	def ssh_settings
@@ -136,16 +140,20 @@ class SshInstance
 		self.gateway.instance.public_ip_address == self.instance.public_ip_address
 	end
 
+	def verbose_command
+		@verbose ? '-v' : ''
+	end
+
 	def ssh_cmd
-		"ssh -o StrictHostKeyChecking=no -i #{key_path} -A #{user_at_url}"	
+		"ssh #{verbose_command} -o StrictHostKeyChecking=no -i #{key_path} -A #{user_at_url}"	
 	end
 
 	def gateway_ssh
-		"ssh  -i #{gateway.key_path} -A -t #{gateway.user_at_url}"
+		"ssh  #{verbose_command} -i #{gateway.key_path} -A -t #{gateway.user_at_url}"
 	end
 
 	def remote_ssh
- 		"ssh -A -o StrictHostKeyChecking=no -i #{remote_key_path} #{user_at_url}"
+ 		"ssh #{verbose_command} -A -o StrictHostKeyChecking=no -i #{remote_key_path} #{user_at_url}"
 	end
 
 	def ssh_cmd_with_gateway
