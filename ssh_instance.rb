@@ -1,6 +1,6 @@
 require 'erb'
 class SshInstance
-	attr_accessor :key_pair_name, :instance, :gateway, :environment, :user_name, :verbose
+	attr_accessor :key_pair_name, :instance, :gateway, :environment, :user_name, :is_verbose
 
 	def initialize(aws_instance, environment)
 		self.key_pair_name = aws_instance.key_pair.name 
@@ -17,9 +17,6 @@ class SshInstance
 		self.user_name = user_name
 	end
 
-	def is_verbose	=(is_verbose)
-		@verbose = is_verbose
-	end
 
 	def ssh_settings
 
@@ -64,8 +61,9 @@ class SshInstance
 	  	raise "No Instances Found" if instances.nil? or instances.size == 0
 
 	  	instances.sort!{|x,y| get_name(x) <=> get_name(y)}
-	  	gateway = get_gateway(settings, environment)
+
 	  	instances.map do |e|  
+	  	gateway = get_gateway(settings, environment, e.vpc_id)
 			instance = self.new(e, environment)
 			instance.gateway = gateway
 			instance
@@ -108,22 +106,25 @@ class SshInstance
 
 	private 
 
-	def self.running_instances(settings)
+	def self.running_instances(settings, filters={'instance-id' => []})
 		connection = Fog::Compute::AWS.new(settings)
-	  	instances = connection.servers.all('instance-id' => [])
-	  	instances.select{|i| i.state == 'running' && i.tags['Name'] !='NAT' }
+			filters['instance-state-name'] = 'running'
+	  	instances = connection.servers.all(filters)
+	  	instances.select{|i| i.tags['Name'] !~ /NAT/i }
 	end
 
 	def self.get_name(aws_instance)
 		last_octet = aws_instance.private_ip_address.split('.').last
-		name = "#{aws_instance.tags['Name']}#{last_octet}" || aws_instance.id
-		"#{name}(#{aws_instance.private_ip_address})"
+		name = "#{aws_instance.tags['Name']}" || aws_instance.id
+		public_ip_string = aws_instance.private_ip_address == '' ? '' : "#{aws_instance.public_ip_address}"
+		env_array = name.split('-')
+		"#{env_array[1] if env_array.size > 0 } - #{name} (#{aws_instance.private_ip_address}) #{public_ip_string}"
 	end	
 
-	def self.get_gateway(settings, environment)
-		instances = running_instances(settings)
+	def self.get_gateway(settings, environment, vpc_id)
+		instances = running_instances(settings, {'vpc-id' => vpc_id, 'tag:gateway'=>'true'})
 
-		instances.reject!{|i| i.tags['gateway'].nil? }
+		# instances.reject!{|i| i.tags['gateway'].nil? }
 
 		SshInstance.new(instances.first, environment) unless instances.size == 0
 	end		
@@ -141,7 +142,7 @@ class SshInstance
 	end
 
 	def verbose_command
-		@verbose ? '-v' : ''
+		@is_verbose ? '-v' : ''
 	end
 
 	def ssh_cmd
