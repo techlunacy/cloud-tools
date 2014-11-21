@@ -1,0 +1,19 @@
+#! /usr/bin/env ruby
+require "rubygems"
+require "bundler/setup"
+require "fog"
+require "fileutils"
+require 'trollop'
+require 'yaml'
+
+require_relative 'environment.rb'
+require_relative 'menu.rb'
+
+include Environment
+include Menu
+include Account
+
+environments.each do |environment, settings|
+	settings.delete("region")
+	set_account_alias(settings, environment)
+end
