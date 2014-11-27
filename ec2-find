@@ -14,8 +14,6 @@ opts = Trollop::options do
 end	
 Trollop::die :instance, "needs an instance id" unless opts[:instance]
 
-
-settings = set_environment(opts[:environment])
 environments.each do |key, settings|
 @connection = Fog::Compute::AWS.new(settings)
 	instance = 	@connection.servers.get(opts[:instance])
