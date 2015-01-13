@@ -1,0 +1,20 @@
+#! /usr/bin/env ruby
+require "rubygems"
+require "bundler/setup"
+require "fog"
+require "fileutils"
+require 'trollop'
+require 'yaml'
+
+require_relative 'environment.rb'
+include Environment
+
+hashes = []
+
+environments.each do |key, settings|
+	puts "[profile #{key}]"
+	puts "aws_access_key_id = #{settings['aws_access_key_id']}"
+	puts "aws_secret_access_key = #{settings['aws_secret_access_key']}"
+	puts "region = #{settings['region']}"
+	puts ''
+end
