@@ -1,11 +1,12 @@
 GIT
   remote: git://github.com/fog/fog.git
-  revision: d5f265a6ec83e77d7a9e258f32dc6411a981c4ac
+  revision: 1f34b4452f40dd2b8f97918ab8442c555f70a9c1
   specs:
-    fog (1.26.0)
+    fog (1.27.0)
       fog-atmos
+      fog-aws (~> 0.0)
       fog-brightbox (~> 0.4)
-      fog-core (~> 1.27, >= 1.27.2)
+      fog-core (~> 1.27, >= 1.27.3)
       fog-ecloud
       fog-json
       fog-profitbricks
@@ -24,20 +25,25 @@ GIT
 GEM
   remote: https://rubygems.org/
   specs:
-    CFPropertyList (2.2.8)
-    awesome_print (1.2.0)
+    CFPropertyList (2.3.0)
+    awesome_print (1.6.1)
     builder (3.2.2)
-    excon (0.42.1)
+    excon (0.44.1)
     fission (0.5.0)
       CFPropertyList (~> 2.2)
     fog-atmos (0.1.0)
       fog-core
       fog-xml
+    fog-aws (0.0.8)
+      fog-core (~> 1.27)
+      fog-json (~> 1.0)
+      fog-xml (~> 0.1)
+      ipaddress (~> 0.8)
     fog-brightbox (0.7.1)
       fog-core (~> 1.22)
       fog-json
       inflecto (~> 0.0.2)
-    fog-core (1.27.2)
+    fog-core (1.28.0)
       builder
       excon (~> 0.38)
       formatador (~> 0.2)
@@ -57,13 +63,13 @@ GEM
       fog-core (>= 1.21.0)
       fog-json
       fog-xml (>= 0.0.1)
-    fog-sakuracloud (0.1.1)
+    fog-sakuracloud (1.0.0)
       fog-core
       fog-json
     fog-serverlove (0.1.1)
       fog-core
       fog-json
-    fog-softlayer (0.3.26)
+    fog-softlayer (0.4.0)
       fog-core
       fog-json
     fog-storm_on_demand (0.1.0)
@@ -85,14 +91,14 @@ GEM
     inflecto (0.0.2)
     ipaddress (0.8.0)
     mime-types (2.4.3)
-    mini_portile (0.6.1)
+    mini_portile (0.6.2)
     multi_json (1.10.1)
     net-scp (1.2.1)
       net-ssh (>= 2.6.5)
-    net-ssh (2.9.1)
-    nokogiri (1.6.5)
+    net-ssh (2.9.2)
+    nokogiri (1.6.6.2)
       mini_portile (~> 0.6.0)
-    trollop (2.0)
+    trollop (2.1.1)
 
 PLATFORMS
   ruby
