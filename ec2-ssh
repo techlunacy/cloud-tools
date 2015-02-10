@@ -18,6 +18,7 @@ opts = Trollop::options do
 	opt :regex, "", :type => :string
 	opt :user, "", :type => :string
 	opt :verbose, false, :type => :flag
+  opt :vpn, false, :type => :flag
 end	
 
 environment = opts[:environment] || get_environment
@@ -27,6 +28,7 @@ settings = set_environment(environment)
 instance = SshInstance.get(environment, settings, regex)
 instance.user = opts[:user]
 instance.is_verbose= opts[:verbose]
+instance.on_vpn= opts[:vpn]
 
 instance.login
 

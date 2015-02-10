@@ -1,11 +1,12 @@
 require 'erb'
 class SshInstance
-	attr_accessor :key_pair_name, :instance, :gateway, :environment, :user_name, :is_verbose
+	attr_accessor :key_pair_name, :instance, :gateway, :environment, :user_name, :is_verbose, :on_vpn
 
 	def initialize(aws_instance, environment)
 		self.key_pair_name = aws_instance.key_pair.name 
 		self.instance = aws_instance
 		self.environment = environment
+		self.on_vpn = false
 
 	end
 
@@ -77,7 +78,7 @@ class SshInstance
 	end
 
 	def url
-		if bypass_gateway
+		if bypass_gateway && !on_vpn
 			self.instance.public_ip_address || self.instance.dns_name || self.instance.private_ip_address
 		else
 			self.instance.private_ip_address
@@ -135,7 +136,7 @@ class SshInstance
 	end		
 
 	def bypass_gateway
-	 	gateway.nil? || i_am_gateway || gateway_in_another_castle
+	 	on_vpn || gateway.nil? || i_am_gateway || gateway_in_another_castle
 	end 
 
 	def gateway_in_another_castle
