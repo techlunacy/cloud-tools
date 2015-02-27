@@ -1,7 +1,7 @@
 require 'erb'
+require_relative 'settings.rb'
 class SshInstance
 	attr_accessor :key_pair_name, :instance, :gateway, :environment, :user_name, :is_verbose, :on_vpn
-
 	def initialize(aws_instance, environment)
 		self.key_pair_name = aws_instance.key_pair.name 
 		self.instance = aws_instance
@@ -20,21 +20,7 @@ class SshInstance
 
 
 	def ssh_settings
-
-		ssh_settings_defaults  = YAML::load(parse_config('defaults.yml'))
-		ssh_settings_environment  = if File.exists?(File.join(File.dirname(File.expand_path(__FILE__)), "#{environment}.yml"))
-			YAML::load(parse_config("#{environment}.yml"))
-		else
-		 {}
-		end
-		ssh_settings_defaults.merge(ssh_settings_environment)
-	end
-
-	def parse_config(file)
-		root_path = File.dirname(File.expand_path(__FILE__))
-		file_content = File.new(File.join(root_path, file)).read
-
-		ERB.new(file_content).result(binding)
+		Settings.new(environment,key_pair_name, gateway_user).ssh
 	end
 
 	def vpc_id
