@@ -1,0 +1,35 @@
+#! /usr/bin/env ruby
+require "rubygems"
+require "bundler/setup"
+require "fog"
+require "fileutils"
+require 'trollop'
+require 'yaml'
+
+require_relative 'environment.rb'
+require_relative 'menu.rb'
+require_relative 'settings.rb'
+
+include Environment
+include Menu
+  
+opts = Trollop::options do
+	opt :environment, "", :type => :string
+	opt :name, "", :type => :string
+end	
+
+environment = opts[:environment] || get_environment
+settings = set_environment(environment)
+
+key_pair_name = opts[:name] || input("what is the name of the ssh key pair?")
+
+@connection = Fog::Compute::AWS.new(settings)
+if @connection.key_pairs.all({'key-name' => [key_pair_name]}).size > 0
+  puts 'this key already exists'
+else
+  settings= Settings.new(environment, key_pair_name)
+  key = @connection.key_pairs.create(:name => key_pair_name)
+  puts settings.ssh["key_path"]
+  File.open(settings.ssh["key_path"], 'w') {|f| f.write(  key.private_key) }
+  File.chmod(0700, settings.ssh["key_path"])
+end
