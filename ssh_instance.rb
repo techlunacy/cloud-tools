@@ -7,17 +7,15 @@ class SshInstance
 		self.instance = aws_instance
 		self.environment = environment
 		self.on_vpn = false
-
 	end
 
 	def user
-		self.user_name || ssh_settings["user"]
+		self.instance.tags['user'] || self.user_name || ssh_settings["user"]
 	end
 
 	def user=(user_name)
-		self.user_name = user_name
+		self.user_name = user_name #if self.user_name.nil?
 	end
-
 
 	def ssh_settings
 		Settings.new(environment,key_pair_name, gateway_user).ssh
@@ -55,7 +53,6 @@ class SshInstance
 	  	end
 
 	  	instances.map do |e|  
-	  	# gateway = get_gateway(settings, environment, e.vpc_id)
 			instance = self.new(e, environment)
 			instance.gateway = gateways[e.vpc_id]
 			instance
@@ -81,11 +78,11 @@ class SshInstance
 	end
 
 	def user_at_url
+		puts user
 		"#{user}@#{url}"
 	end
 
 	def login()
-		puts user
 		puts self.cmd
 
 		exec(self.cmd)
