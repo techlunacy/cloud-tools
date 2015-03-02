@@ -22,7 +22,7 @@ opts = Trollop::options do
 end	
 
 cmd = ARGV.shift # get the subcommand
-cmd_opts = case cmd
+cmd_opts = case cmd.downcase
   when "get" # parse delete options
     Trollop::options do
       opt :get, "get the file", :default => true
