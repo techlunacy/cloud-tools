@@ -14,7 +14,7 @@ class SshInstance
 	end
 
 	def user=(user_name)
-		self.user_name = user_name #if self.user_name.nil?
+		self.user_name = user_name
 	end
 
 	def ssh_settings
@@ -78,7 +78,6 @@ class SshInstance
 	end
 
 	def user_at_url
-		puts user
 		"#{user}@#{url}"
 	end
 
